@@ -1,0 +1,2390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Advisory & Market Update Hub</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SheetJS for Excel Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js for Fund Value Projection -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- html2canvas for PNG Graphic Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+            roboto: ['Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
+    
+    /* Contenteditable visual indicators */
+    [contenteditable="true"]:hover {
+      outline: 2px dashed rgba(220, 38, 38, 0.5);
+      border-radius: 4px;
+      cursor: text;
+    }
+    [contenteditable="true"]:focus {
+      outline: 2px solid #dc2626;
+      border-radius: 4px;
+      background-color: rgba(254, 242, 242, 0.3);
+    }
+
+    /* Device Preview Frames */
+    .preview-desktop { max-width: 100%; }
+    .preview-mobile {
+      max-width: 375px;
+      margin: 0 auto;
+      border: 12px solid #1f2937;
+      border-radius: 36px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .main-view { display: none; }
+    .main-view.active { display: block; }
+    
+    .market-subtab { display: none; }
+    .market-subtab.active { display: block; }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col">
+
+  <!-- Application Header -->
+  <header class="bg-gradient-to-r from-red-800 via-red-700 to-slate-900 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+      
+      <!-- Brand Logo / Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-sm">
+          <i class="fa-solid fa-paper-plane text-base"></i>
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-bold text-white leading-tight">Client Update & Market Hub</h1>
+          <p class="text-[11px] text-red-100 hidden sm:block">Email Studio • DAILY MARKET BRIEF • Fund Projections</p>
+        </div>
+      </div>
+
+      <!-- Primary Workspace Switcher -->
+      <div class="flex items-center bg-black/25 p-1 rounded-xl border border-white/15">
+        <button id="nav-email-studio" onclick="switchMainView('email-studio')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-red-800 shadow transition flex items-center gap-1.5">
+          <i class="fa-solid fa-envelope-open-text"></i>
+          <span>Monthly Email Studio</span>
+        </button>
+        <button id="nav-market-hub" onclick="switchMainView('market-hub')" class="px-3 py-1.5 text-xs font-bold rounded-lg text-white hover:bg-white/10 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Daily Market & Fund Hub</span>
+        </button>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="flex items-center space-x-2">
+        <button onclick="openGmailSetupModal()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-white/15 hover:bg-white/25 border border-white/20 shadow-sm transition">
+          <i class="fa-solid fa-gear sm:mr-1.5"></i>
+          <span class="hidden sm:inline">Gmail Setup</span>
+        </button>
+        <button id="btnDownload" onclick="downloadHtmlFile()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg text-red-900 bg-white hover:bg-red-50 shadow-sm transition">
+          <i class="fa-solid fa-download sm:mr-1.5"></i>
+          <span class="hidden sm:inline">Download .html</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Floating Global Toast Notification -->
+  <div id="globalToast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl text-xs font-semibold shadow-xl border transition-all duration-300 flex items-center gap-2"></div>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 1: MONTHLY CLIENT UPDATE (EMAIL STUDIO)                              -->
+  <!-- ========================================================================= -->
+  <div id="view-email-studio" class="main-view active flex-1">
+    <main class="max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT SIDEBAR (5 Cols) -->
+      <section class="lg:col-span-5 flex flex-col gap-5">
+        
+        <!-- Quick Jump Banner to Daily Market Brief -->
+        <div class="bg-gradient-to-r from-red-700 to-red-900 text-white rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>DAILY MARKET BRIEF Ready</span>
+            </div>
+            <p class="text-[11px] text-red-100 mt-0.5">I-load ang iyong latest market update + VUL impact sa email.</p>
+          </div>
+          <button onclick="injectMarketBriefToEmail()" class="px-3 py-2 bg-white text-red-800 hover:bg-red-50 font-bold text-xs rounded-xl shadow whitespace-nowrap transition flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-500"></i>
+            <span>Insert Today's Brief</span>
+          </button>
+        </div>
+
+        <!-- Content Calendar Dropdown Selector Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+          <div class="flex items-center justify-between mb-3">
+            <label class="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-calendar-days text-red-600"></i> Client Email Content Calendar
+            </label>
+            <span class="text-[11px] bg-red-50 text-red-700 border border-red-200 px-2.5 py-0.5 rounded-full font-semibold">
+              Topics Auto-Saved
+            </span>
+          </div>
+
+          <!-- Custom Dropdown Container for General Topic -->
+          <div class="mb-3 relative">
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Select General Topic</label>
+            <button id="generalTopicBtn" onclick="toggleGeneralTopicMenu(event)" type="button" class="w-full text-xs sm:text-sm bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl p-2.5 text-slate-800 dark:text-slate-100 flex items-center justify-between focus:ring-2 focus:ring-red-500 focus:outline-none">
+              <span id="generalTopicBtnText" class="truncate">-- Mag-upload ng Excel File sa ibaba --</span>
+              <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+            </button>
+            
+            <div id="generalTopicMenu" class="hidden absolute left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl shadow-xl z-20 overflow-y-auto max-h-[190px] divide-y divide-slate-100 dark:divide-slate-700">
+            </div>
+          </div>
+
+          <!-- Sub-Topic Dropdown -->
+          <div>
+            <label for="subTopicSelect" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Select Sub-Topic</label>
+            <select id="subTopicSelect" onchange="onSubTopicChange()" class="w-full text-xs sm:text-sm bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl p-2.5 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:outline-none">
+            </select>
+          </div>
+        </div>
+
+        <!-- Upload Custom Email Topics Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-file-arrow-up text-red-600"></i> Upload Monthly Topics (.xlsx / .csv)
+            </h3>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            Mag-upload ng Excel file. Awtomatiko itong mase-save sa browser para hindi na mawala kahit i-refresh.
+          </p>
+          <div class="relative flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">
+            <input type="file" id="topicFileInput" accept=".xlsx, .xls, .csv, .json" onchange="handleTopicFileUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <i class="fa-solid fa-cloud-arrow-up text-xl text-red-600 mb-1"></i>
+            <span class="text-xs text-slate-600 dark:text-slate-300 font-medium text-center">I-click o i-drag ang Topics Excel file dito</span>
+            <span id="topicFileNameDisplay" class="text-[11px] text-red-600 dark:text-red-400 mt-1 font-semibold"></span>
+          </div>
+        </div>
+
+        <!-- Recipient Excel/CSV Upload Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i> Import Recipients (.xlsx / .csv)
+            </h3>
+            <span id="recipientCountBadge" class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full font-semibold">0 Recipients</span>
+          </div>
+
+          <div class="relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 dark:text-slate-300 mb-1"></i>
+            <span class="text-xs text-slate-600 dark:text-slate-300 font-medium text-center">Click or Drag Excel / CSV file here</span>
+            <span id="fileNameDisplay" class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold"></span>
+          </div>
+
+          <div id="recipientListContainer" class="hidden space-y-3">
+            <div class="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg text-xs">
+              <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 sticky top-0">
+                  <tr>
+                    <th class="p-2 border-b">Name</th>
+                    <th class="p-2 border-b">Email</th>
+                    <th class="p-2 border-b text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recipientTableBody" class="divide-y divide-slate-100 dark:divide-slate-700">
+                </tbody>
+              </table>
+            </div>
+
+            <button id="btnSendAllMailto" onclick="sendBatchEmails()" class="w-full py-2.5 px-3 bg-gradient-to-r from-red-700 to-red-600 hover:from-red-800 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
+              <i id="sendIcon" class="fa-solid fa-paper-plane"></i>
+              <span id="sendBtnText">Send Batch Emails via Gmail</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Customization Controls Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+          <h3 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-2">
+            <i class="fa-solid fa-sliders text-red-600"></i> Additional Customizations
+          </h3>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Email Subject Line</label>
+            <input type="text" id="inputSubjectLine" value="" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-slate-800 dark:text-slate-100">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Header Banner Image URL</label>
+            <input type="text" id="customBannerInput" oninput="changeBannerUrl(this.value)" placeholder="Mag-upload ng topics excel..." class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-slate-800 dark:text-slate-100">
+          </div>
+
+          <div class="border-t border-slate-100 dark:border-slate-700 pt-3">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-link text-red-600"></i> Call-To-Action (CTA) Button
+              </label>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="ctaToggle" onchange="toggleCtaButton(this.checked)" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+              </label>
+            </div>
+
+            <div id="ctaInputsWrapper" class="grid grid-cols-2 gap-3 mt-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Button Text</label>
+                <input type="text" id="inputCtaText" value="" oninput="updateCta()" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-slate-800 dark:text-slate-100">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Target URL</label>
+                <input type="text" id="inputCtaUrl" value="" oninput="updateCta()" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-slate-800 dark:text-slate-100">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-700 pt-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Sender Name</label>
+              <input type="text" id="inputSenderName" value="Mark Isaac Ison" oninput="updateSignoff()" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-slate-800 dark:text-slate-100">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Designation</label>
+              <select id="selectSenderTitle" onchange="updateSignoff()" class="w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-2 text-slate-800 dark:text-slate-100 focus:outline-none">
+                <option value="Financial Consultant">Financial Consultant</option>
+                <option value="Assistant Unit Manager">Assistant Unit Manager</option>
+                <option value="Unit Manager" selected>Unit Manager</option>
+                <option value="Branch Manager">Branch Manager</option>
+                <option value="Area Manager">Area Manager</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL: Live Interactive Email Preview Canvas (7 Cols) -->
+      <section class="lg:col-span-7 flex flex-col">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-full overflow-hidden">
+          
+          <!-- Canvas Header Bar -->
+          <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
+            <div class="flex items-center space-x-2">
+              <span class="inline-block w-3 h-3 rounded-full bg-red-500"></span>
+              <span class="inline-block w-3 h-3 rounded-full bg-amber-500"></span>
+              <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span>
+              <span class="text-xs text-slate-500 dark:text-slate-400 font-medium ml-2">Click any text directly in preview to edit</span>
+            </div>
+
+            <!-- Desktop vs Mobile View Toggles -->
+            <div class="flex items-center bg-slate-200 dark:bg-slate-700 p-1 rounded-lg">
+              <button id="btnDeviceDesktop" onclick="setDeviceView('desktop')" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 shadow-sm transition">
+                <i class="fa-solid fa-desktop mr-1"></i> Desktop
+              </button>
+              <button id="btnDeviceMobile" onclick="setDeviceView('mobile')" class="px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 transition">
+                <i class="fa-solid fa-mobile-screen-button mr-1"></i> Mobile
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Preview Container Area -->
+          <div class="p-4 sm:p-6 flex-1 bg-slate-200 dark:bg-slate-900/50 overflow-y-auto flex items-start justify-center min-h-[550px]">
+            <div id="previewWrapper" class="preview-desktop w-full transition-all duration-300">
+              
+              <!-- TEMPLATED HTML EMAIL CANVAS -->
+              <div id="emailContainer" class="bg-white rounded-xl overflow-hidden shadow-xl mx-auto" style="max-width: 600px; font-family: Arial, sans-serif; color: #333333;">
+                
+                <!-- Banner Header -->
+                <div id="emailHeaderBanner" style="background-image: url('https://plus.unsplash.com/premium_photo-1681487769650-a0c3fbaed85a?q=80&w=1855&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D'); background-size: cover; background-position: center; padding: 45px 20px; text-align: center; position: relative;">
+                  <div id="bannerOverlay" style="background-color: rgba(185, 28, 28, 0.88); border-radius: 12px; padding: 25px 15px; margin: 0 auto; max-width: 90%;">
+                    <p id="emailSubheading" contenteditable="true" style="color: #fef08a; text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: bold; margin-bottom: 8px;">CLIENT ADVISORY UPDATE</p>
+                    <h1 id="emailMainHeading" contenteditable="true" style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0; line-height: 1.3;">Monthly & Market Insights</h1>
+                  </div>
+                </div>
+
+                <!-- Content Body -->
+                <div style="padding: 30px 25px; background-color: #ffffff;">
+                  
+                  <p id="emailGreeting" contenteditable="true" style="font-size: 16px; font-weight: bold; color: #1f2937; margin-bottom: 15px;">
+                    Dear Valued Client,
+                  </p>
+
+                  <div id="emailBodyText" contenteditable="true" style="font-size: 14px; line-height: 1.6; color: #4b5563;">
+                    <p style="margin-bottom: 12px;">
+                      Mag-upload ng Excel file para sa Monthly Topics, o i-click ang <b>"Insert Today's Brief"</b> sa itaas upang awtomatikong mailagay ang DAILY MARKET BRIEF at VUL Policy Impact.
+                    </p>
+                  </div>
+
+                  <!-- CTA Button -->
+                  <div id="emailCtaContainer" style="text-align: center; margin: 30px 0 25px 0; display: block;">
+                    <table border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto;">
+                      <tr>
+                        <td align="center" style="border-radius: 8px; background-color: #b91c1c;" id="emailCtaTd">
+                          <a id="emailCtaBtn" href="https://example.com" target="_blank" style="font-size: 15px; font-family: Arial, sans-serif; color: #ffffff; font-weight: bold; text-decoration: none; border-radius: 8px; padding: 14px 28px; border: 1px solid #b91c1c; display: inline-block; background-color: #b91c1c;">
+                            Request Portfolio Review
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+
+                  <!-- Sign-off Section -->
+                  <div style="font-size: 14px; color: #374151;">
+                    <p style="margin-bottom: 4px;">Warmest regards,</p>
+                    <p id="emailSignoffName" contenteditable="true" style="font-size: 16px; font-weight: bold; color: #111827; margin: 0;">Mark Isaac Ison</p>
+                    <p id="emailSignoffTitle" contenteditable="true" style="font-size: 13px; color: #6b7280; margin-top: 2px;">Unit Manager</p>
+                  </div>
+
+                </div>
+
+                <!-- Footer Banner -->
+                <div id="emailFooter" style="background-color: #f9fafb; padding: 15px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #f3f4f6;">
+                  <p style="margin: 0;" id="emailFooterText" contenteditable="true">
+                    Securing your future together. | Pru Life UK
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 2: DAILY MARKET BRIEF & FUND PROJECTION HUB                          -->
+  <!-- ========================================================================= -->
+  <div id="view-market-hub" class="main-view flex-1 pb-12">
+    
+    <!-- Sub-Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-16 z-30">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 overflow-x-auto py-2.5">
+        <button onclick="switchMarketSubTab('brief')" id="msub-btn-brief" class="msub-btn flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-all whitespace-nowrap bg-red-700 text-white shadow-sm">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>DAILY MARKET BRIEF</span>
+        </button>
+
+        <button onclick="switchMarketSubTab('calculator')" id="msub-btn-calculator" class="msub-btn flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-all whitespace-nowrap text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <i data-lucide="calculator" class="w-4 h-4"></i>
+          <span>Client Fund Value Projection</span>
+        </button>
+
+        <button onclick="switchMarketSubTab('recommendations')" id="msub-btn-recommendations" class="msub-btn flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-all whitespace-nowrap text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <i data-lucide="arrow-right-left" class="w-4 h-4"></i>
+          <span>Fund Strategy & Switching Engine</span>
+        </button>
+      </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+
+      <!-- SUB-TAB 1: DAILY MARKET BRIEF -->
+      <section id="msub-brief" class="market-subtab active">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Left Column: Visual Card Preview & Download -->
+          <div class="lg:col-span-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-3">
+              <div>
+                <h2 class="text-base font-bold text-slate-800">Daily Graphic Preview</h2>
+                <p class="text-xs text-slate-500">Live preview ng iyong inilagay na market highlights</p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <button onclick="downloadPng()" id="btnDownloadPng" class="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 shadow-sm transition-colors">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                  <span id="downloadBtnText">PNG</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Graphic Card Container -->
+            <div id="briefCardCapture" class="bg-white rounded-xl shadow-xl overflow-hidden border border-slate-300 max-w-xl mx-auto">
+              
+              <!-- Header Banner (Gradient Red) -->
+              <div class="bg-gradient-to-r from-red-700 via-red-600 to-rose-900 text-white p-5 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+                
+                <div class="flex justify-between items-start relative z-10">
+                  <div>
+                    <h1 class="text-2xl font-black tracking-tight text-white">DAILY MARKET BRIEF</h1>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-xs font-extrabold tracking-wider uppercase text-red-200">Financial Markets</div>
+                    <div class="text-[10px] text-red-300">Investment Insights</div>
+                  </div>
+                </div>
+
+                <div class="mt-3 pt-2.5 border-t border-red-400/30 flex justify-between items-end relative z-10 text-xs gap-2">
+                  <p class="text-red-100 text-[11px] max-w-[260px] leading-snug">
+                    Your quick read on today's markets & economic indicators
+                  </p>
+                  <div id="displayBriefDate" class="font-semibold text-white bg-black/30 px-2.5 py-1 rounded-lg text-[11px] border border-white/10 whitespace-nowrap">
+                    14 November 2026 | Saturday
+                  </div>
+                </div>
+              </div>
+
+              <!-- Accent Line -->
+              <div class="h-1.5 bg-red-600"></div>
+
+              <!-- Bullets Container -->
+              <div id="briefBulletsContainer" class="p-6 bg-gradient-to-b from-slate-50 to-white space-y-5">
+              </div>
+
+              <!-- Footer Sources -->
+              <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 text-center">
+                <p id="displayBriefSources" class="text-[11px] text-slate-500 font-medium">
+                  Sources: Associated Press, BusinessWorld, CNBC, MarketWatch
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Manual Feed Editor & Auto-Generated Email -->
+          <div class="lg:col-span-6 space-y-6">
+            
+            <!-- Feed DAILY MARKET BRIEF Info Panel -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2 text-slate-900 font-bold text-sm">
+                  <i data-lucide="pen-square" class="w-4 h-4 text-red-700"></i>
+                  <h3>Feed DAILY MARKET BRIEF Info</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Auto-Saved
+                  </span>
+                  <button onclick="clearBriefFeed()" type="button" class="text-xs px-2.5 py-1 rounded-lg font-semibold text-slate-600 bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 transition flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                    <span>Clear / New Day</span>
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-xs text-slate-500 leading-relaxed">
+                I-type o i-paste sa ibaba ang latest market highlights ngayong araw. Awtomatikong mag-a-update ang graphic card sa kaliwa at ang VUL email draft.
+              </p>
+
+              <!-- Date & Sources Row -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="briefDateInput" class="block text-xs font-semibold text-slate-700 mb-1">Brief Date</label>
+                  <input
+                    type="date"
+                    id="briefDateInput"
+                    onchange="onBriefFeedChange()"
+                    class="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label for="briefSourcesInput" class="block text-xs font-semibold text-slate-700 mb-1">News Sources</label>
+                  <input
+                    type="text"
+                    id="briefSourcesInput"
+                    oninput="onBriefFeedChange()"
+                    placeholder="e.g. Associated Press, BusinessWorld, CNBC, MarketWatch"
+                    class="w-full text-xs text-slate-800 bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <!-- Dynamic Market Bullets Editor List -->
+              <div class="space-y-2.5 pt-1">
+                <div class="flex items-center justify-between">
+                  <label class="block text-xs font-bold text-slate-700">Market Indicators & Highlights</label>
+                  <button onclick="addBriefBullet()" type="button" class="text-xs font-semibold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    <span>Add Item</span>
+                  </button>
+                </div>
+
+                <div id="briefFeedEditorList" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual Input Card: How This Affects VUL Policies -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2 text-slate-900 font-bold text-sm">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-red-700"></i>
+                  <h3>How This Affects VUL Policies</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Auto-Saved
+                  </span>
+                </div>
+              </div>
+
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Ilagay dito ang iyong sariling paliwanag kung paano makakaapekto ang market updates ngayong araw sa VUL policies ng kliyente.
+              </p>
+
+              <div class="space-y-3">
+                <div>
+                  <label for="vulFundValueInput" class="block text-xs font-bold text-slate-700 mb-1">
+                    1. Fund Value & Unit Accumulation
+                  </label>
+                  <textarea
+                    id="vulFundValueInput"
+                    rows="3"
+                    oninput="onVulImpactChange()"
+                    placeholder="e.g. During market consolidation or dips, your regular VUL premiums buy more fund units at lower prices (Peso-Cost Averaging)..."
+                    class="w-full text-xs text-slate-800 bg-slate-50 border border-slate-300 rounded-xl p-2.5 leading-relaxed focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label for="vulMacroStabilityInput" class="block text-xs font-bold text-slate-700 mb-1">
+                    2. Inflation & Portfolio Stability
+                  </label>
+                  <textarea
+                    id="vulMacroStabilityInput"
+                    rows="3"
+                    oninput="onVulImpactChange()"
+                    placeholder="e.g. Global inflation and currency movements highlight the value of staying diversified across balanced or dividend-paying VUL funds..."
+                    class="w-full text-xs text-slate-800 bg-slate-50 border border-slate-300 rounded-xl p-2.5 leading-relaxed focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- SUB-TAB 2: CLIENT FUND VALUE PROJECTION -->
+      <section id="msub-calculator" class="market-subtab space-y-6">
+        
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="calculator" class="w-5 h-5 text-red-700"></i>
+                <span>Client Fund Value Projection (Actual Current Value)</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Input your client's actual current fund value to project growth across coming years based on historical performance rates.
+              </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2.5">
+              <div class="min-w-[260px]">
+                <label for="fundSelector" class="block text-xs font-semibold text-slate-700 mb-1">Select Investment Fund</label>
+                <select id="fundSelector" onchange="updateProjection()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none">
+                </select>
+              </div>
+              <button onclick="openFundUpdateModal()" type="button" class="px-3.5 py-2.5 bg-red-700 hover:bg-red-800 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Update Fund Data</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="fundMetricsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-2">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div class="lg:col-span-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
+            <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+              Client Actual Portfolio Inputs
+            </h3>
+
+            <div>
+              <label for="actualFundValueInput" id="actualFundValueLabel" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                Client's Current Actual Fund Value (PHP):
+              </label>
+              <div class="relative">
+                <span id="currencyPrefixSymbol" class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm">₱</span>
+                <input
+                  type="number"
+                  id="actualFundValueInput"
+                  step="5000"
+                  value="250000"
+                  oninput="updateProjection()"
+                  class="w-full pl-8 pr-3 py-2.5 text-sm font-bold text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Enter current account balance directly from statement.</p>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1.5">
+                <span class="text-slate-600">Projection Horizon:</span>
+                <span id="horizonLabel" class="text-red-700 font-bold">10 Years</span>
+              </div>
+              <input
+                type="range"
+                id="horizonSlider"
+                min="1"
+                max="25"
+                step="1"
+                value="10"
+                oninput="updateProjection()"
+                class="w-full accent-red-700 cursor-pointer"
+              />
+              <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>1 Yr</span>
+                <span>25 Yrs</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100">
+              <label for="customRateInput" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                Assumed Annual Growth Rate (% p.a.)
+              </label>
+              <div class="flex items-center space-x-2">
+                <input
+                  type="number"
+                  id="customRateInput"
+                  step="0.1"
+                  oninput="updateProjection()"
+                  class="w-24 text-xs font-bold border border-slate-300 rounded-xl p-2.5 text-center focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+                <button onclick="resetCustomRate()" id="resetRateBtn" class="text-xs text-red-700 underline hover:text-red-900 font-medium">
+                  Use 10-Yr Rate
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-slate-900 text-white p-4 rounded-xl space-y-1.5 mt-4 shadow-md">
+              <div id="projectedHorizonText" class="text-[11px] text-slate-400 font-medium">Projected Value in 10 Years</div>
+              <div id="projectedFinalValue" class="text-2xl font-black text-amber-400">₱0</div>
+              <div class="text-[11px] text-slate-300 pt-1.5 border-t border-slate-800">
+                Est. Total Capital Gain: <span id="projectedGainValue" class="font-bold text-emerald-400">+₱0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-8 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                <h3 id="chartTitleText" class="text-sm font-bold text-slate-900">
+                  Portfolio Value Trajectory Projection
+                </h3>
+                <div class="flex items-center space-x-4 text-xs">
+                  <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-700"></span> Historical Rate
+                  </span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Optimistic (+3%)
+                  </span>
+                </div>
+              </div>
+
+              <div class="relative h-72 w-full mt-2">
+                <canvas id="projectionChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500 mt-4 leading-normal bg-slate-50 p-3 rounded-xl border border-slate-200">
+              *Disclaimer: Projections are illustrative based on historical compound annual growth rates (CAGR). Actual future performance depends on market conditions and asset valuations.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUB-TAB 3: STRATEGY & FUND SWITCHING ENGINE -->
+      <section id="msub-recommendations" class="market-subtab space-y-6">
+        
+        <div class="bg-gradient-to-r from-slate-900 via-red-950 to-slate-900 text-white p-6 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 class="text-xl font-bold flex items-center gap-2">
+              <i data-lucide="arrow-right-left" class="w-5 h-5 text-amber-300"></i>
+              <span>Strategic Asset Allocation & Fund Switching</span>
+            </h2>
+            <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+              Analyze market recommendations to help clients rebalance portfolios toward higher-yield opportunities.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5 bg-black/30 p-1.5 rounded-xl border border-white/20">
+            <span class="text-xs font-semibold px-2 text-slate-300">Risk Profile:</span>
+            <button onclick="filterRisk('All')" class="risk-filter-btn px-3 py-1 rounded-lg text-xs font-medium bg-white text-slate-900 shadow transition-all" data-risk="All">All</button>
+            <button onclick="filterRisk('Aggressive')" class="risk-filter-btn px-3 py-1 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-all" data-risk="Aggressive">Aggressive</button>
+            <button onclick="filterRisk('Moderate')" class="risk-filter-btn px-3 py-1 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-all" data-risk="Moderate">Moderate</button>
+            <button onclick="filterRisk('Conservative')" class="risk-filter-btn px-3 py-1 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-all" data-risk="Conservative">Conservative</button>
+          </div>
+        </div>
+
+        <div id="recommendationCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="arrow-right-left" class="w-5 h-5 text-red-700"></i>
+            <span>Simulate Fund Switch Proposal for Client</span>
+          </h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="switchFromSelect" class="block text-xs font-semibold text-slate-600 mb-1.5">Switch FROM (Current Fund):</label>
+              <select id="switchFromSelect" onchange="updateSwitchSummary()" class="w-full text-xs font-semibold border border-slate-300 rounded-xl p-2.5 bg-slate-50 focus:ring-2 focus:ring-red-500 focus:outline-none"></select>
+            </div>
+
+            <div>
+              <label for="switchToSelect" class="block text-xs font-semibold text-slate-600 mb-1.5">Switch TO (Target Fund):</label>
+              <select id="switchToSelect" onchange="updateSwitchSummary()" class="w-full text-xs font-semibold border border-slate-300 rounded-xl p-2.5 bg-slate-50 focus:ring-2 focus:ring-red-500 focus:outline-none"></select>
+            </div>
+
+            <div>
+              <label for="switchAmountInput" id="switchAmountLabel" class="block text-xs font-semibold text-slate-600 mb-1.5">Reallocation Amount (PHP / USD):</label>
+              <input type="number" id="switchAmountInput" value="50000" step="5000" oninput="updateSwitchSummary()" class="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div id="switchAdvisorNote" class="text-xs text-slate-700 leading-relaxed">
+            </div>
+
+            <button onclick="copySwitchProposal()" class="px-4 py-2.5 bg-red-700 text-white rounded-xl text-xs font-bold hover:bg-red-800 whitespace-nowrap shadow-sm transition-colors">
+              Copy Switch Recommendation Text
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- GMAIL WEBHOOK SETUP MODAL -->
+  <div id="gmailSetupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 relative">
+      <button onclick="closeGmailSetupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+        <i class="fa-solid fa-envelope-circle-check text-red-600"></i> Automatic Gmail Dispatch Setup
+      </h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Connect your 1-time Google Script Webhook so clicking <b>Send</b> sends personalized emails automatically directly from your Gmail account.
+      </p>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Your Google Webhook URL</label>
+          <input type="text" id="gmailWebhookInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-mono text-[11px]">
+        </div>
+
+        <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-3 text-red-950 dark:text-red-200 space-y-2">
+          <p class="font-bold flex items-center gap-1.5 text-xs">
+            <i class="fa-solid fa-lightbulb text-red-600"></i> Quick Setup Guide:
+          </p>
+          <ol class="list-decimal pl-4 space-y-1 text-[11px]">
+            <li>Open <a href="https://script.google.com" target="_blank" class="underline font-bold text-red-700 dark:text-red-300">script.google.com</a> and click <b>New Project</b>.</li>
+            <li>Paste the Google Apps Script code below and click <b>Deploy > New Deployment</b>.</li>
+            <li>Select <b>Web App</b> (Execute as: <i>Me</i>, Access: <i>Anyone</i>), copy the URL, and paste it above!</li>
+          </ol>
+          <div class="relative mt-2">
+            <pre id="gasTemplateCode" class="p-2 bg-slate-900 text-slate-100 rounded text-[10px] overflow-x-auto max-h-28 font-mono">function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var recipients = data.recipients;
+  var subject = data.subject;
+  var htmlBody = data.htmlBody;
+  
+  recipients.forEach(function(r) {
+    var personalizedBody = htmlBody.replace("Dear Valued Client,", "Dear " + r.name + ",");
+    GmailApp.sendEmail(r.email, subject, "", {
+      name: "Mark Isaac Ison - Pru Life UK",
+      htmlBody: personalizedBody
+    });
+  });
+  
+  return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+}</pre>
+            <button onclick="copyGasCode()" class="absolute right-2 top-2 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-[10px]">Copy Code</button>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="saveGmailSetup()" class="w-full py-2.5 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-lg text-xs shadow transition">
+            Save Webhook URL
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- FUND FACT SHEET UPDATE MODAL -->
+  <div id="fundUpdateModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeFundUpdateModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center justify-between gap-2 mb-1 pr-6">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie text-red-700"></i> Update PRULink Fund Fact Sheet Data
+        </h3>
+      </div>
+      <p class="text-xs text-slate-500 mb-4">
+        I-update ang NAVPU at historical returns base sa pinakabagong Fund Fact Sheet mula sa Pru Life UK. Awtomatikong mase-save ito sa iyong browser.
+      </p>
+
+      <!-- Official Pru Life UK Portal Banner -->
+      <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-xs text-red-950">
+          <p class="font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-globe text-red-700"></i> Pru Life UK Official Fund Reports
+          </p>
+          <p class="text-[11px] text-red-800 mt-0.5">Buksan ang opisyal na page upang tingnan o i-download ang latest Fund Fact Sheets.</p>
+        </div>
+        <a href="https://www.prulifeuk.com.ph/en/products/investment/prulink-funds/fund-reports/" target="_blank" rel="noopener noreferrer" class="px-3 py-2 bg-red-700 hover:bg-red-800 text-white font-bold text-xs rounded-lg shadow-sm transition inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>Open Pru Life UK Reports</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </a>
+      </div>
+
+      <!-- Mode Switcher: Quick Single Fund Edit vs Bulk Excel/CSV Upload -->
+      <div class="space-y-4 text-xs">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+            <span class="font-bold text-slate-800 text-xs">Option 1: Quick Edit Selected Fund</span>
+            <select id="modalFundSelector" onchange="loadFundIntoUpdateModal()" class="text-xs font-semibold bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:ring-2 focus:ring-red-500 focus:outline-none max-w-xs">
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Latest NAVPU</label>
+              <input type="number" step="0.00001" id="editFundNavpu" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-bold">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">As of Date / Label</label>
+              <input type="text" id="editFundNavpuDate" placeholder="e.g. Nov 2026" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">1-Month (%)</label>
+              <input type="number" step="0.01" id="editFund1Mo" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Year-to-Date (%)</label>
+              <input type="number" step="0.01" id="editFundYtd" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">1-Year Return (%)</label>
+              <input type="number" step="0.01" id="editFund1Yr" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">5-Year Ann. (%)</label>
+              <input type="number" step="0.01" id="editFund5Yr" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Since Incep. (%)</label>
+              <input type="number" step="0.01" id="editFundIncep" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Benchmark Rate (%)</label>
+              <input type="number" step="0.01" id="editFundBench" class="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-bold text-red-700">
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button onclick="saveSingleFundUpdate()" type="button" class="px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg text-xs shadow-sm transition">
+              Save Fund Update
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 2: Bulk Upload CSV / Excel -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-bold text-slate-800 text-xs">Option 2: Bulk Update All Funds via Excel/CSV</span>
+            <button onclick="downloadFundTemplateCsv()" type="button" class="text-[11px] font-semibold text-red-700 hover:text-red-800 underline flex items-center gap-1">
+              <i class="fa-solid fa-download"></i> Download Current Funds CSV Template
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            I-download ang CSV template sa itaas, i-update ang mga numero base sa bagong Fund Fact Sheets, at i-upload dito para sabay-sabay ma-update lahat ng funds.
+          </p>
+          <div class="relative flex items-center justify-center p-3 border-2 border-dashed border-slate-300 rounded-xl bg-white hover:bg-slate-100 transition cursor-pointer">
+            <input type="file" id="bulkFundFileInput" accept=".xlsx, .xls, .csv" onchange="handleBulkFundUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <span class="text-xs font-semibold text-slate-700 flex items-center gap-2">
+              <i class="fa-solid fa-file-arrow-up text-red-700"></i> Click or Drag Updated Funds (.xlsx / .csv) here
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+          <button onclick="resetAllFundsToDefault()" type="button" class="text-[11px] font-semibold text-slate-500 hover:text-red-700 transition">
+            <i class="fa-solid fa-rotate-left mr-1"></i> Reset to Default Baseline Data
+          </button>
+          <button onclick="closeFundUpdateModal()" type="button" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-lg text-xs transition">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- UNIFIED APPLICATION JAVASCRIPT                                            -->
+  <!-- ========================================================================= -->
+  <script>
+    // ==================== STATE & DATABASES ====================
+    let EMAIL_TEMPLATES = JSON.parse(localStorage.getItem('saved_email_templates')) || {};
+    let selectedGeneralTopicKey = "";
+    let recipientsList = [];
+    let savedWebhookUrl = localStorage.getItem('gmail_webhook_url') || '';
+
+    const ICON_CATEGORY_MAP = {
+      'shopping-cart': 'Inflation / Consumer Prices',
+      'oil-barrel': 'Commodities / Oil',
+      'peso': 'Foreign Exchange (USD/PHP)',
+      'chart-line-down': 'Equities (Local / PSEi)',
+      'us-equities': 'Equities (Global / US)'
+    };
+
+    function getTodayIsoDate() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const DEFAULT_MARKET_BRIEF = {
+      date: getTodayIsoDate(),
+      sources: 'Associated Press, BusinessWorld, CNBC, MarketWatch',
+      vulFundValue: 'During market consolidation or dips, your regular VUL premiums buy more fund units at lower prices (Peso-Cost Averaging), positioning your policy for stronger gains upon recovery.',
+      vulMacroStability: 'Global inflation and currency movements highlight the value of staying diversified across balanced or dividend-paying VUL funds to cushion short-term volatility.',
+      bullets: [
+        { id: '1', category: 'Inflation / Consumer Prices', iconType: 'shopping-cart', headline: 'US inflation registered 0.4% in the latest reading, reflecting price movements across food, shelter, and essential categories.' },
+        { id: '2', category: 'Commodities / Oil', iconType: 'oil-barrel', headline: 'Brent crude settled at USD 91.49 per barrel as global supply concerns eased.' },
+        { id: '3', category: 'Foreign Exchange (USD/PHP)', iconType: 'peso', headline: 'Philippine Peso traded at PHP 62.91 per US dollar amid steady remittance inflows and easing import pressure.' },
+        { id: '4', category: 'Equities (Local / PSEi)', iconType: 'chart-line-down', headline: 'PSEi advanced 0.67% to close at 5,716.15, supported by local institutional bargain hunting.' },
+        { id: '5', category: 'Equities (Global / US)', iconType: 'us-equities', headline: 'US equities closed mixed as investors weighed interest rate expectations and corporate earnings.' }
+      ]
+    };
+
+    let savedBriefState = null;
+    try {
+      savedBriefState = JSON.parse(localStorage.getItem('user_daily_market_brief'));
+    } catch (e) {
+      savedBriefState = null;
+    }
+
+    let currentSelectedDate = (savedBriefState && savedBriefState.date) ? savedBriefState.date : DEFAULT_MARKET_BRIEF.date;
+    let currentBriefSources = (savedBriefState && typeof savedBriefState.sources === 'string') ? savedBriefState.sources : DEFAULT_MARKET_BRIEF.sources;
+    let currentVulFundValue = (savedBriefState && typeof savedBriefState.vulFundValue === 'string') ? savedBriefState.vulFundValue : DEFAULT_MARKET_BRIEF.vulFundValue;
+    let currentVulMacroStability = (savedBriefState && typeof savedBriefState.vulMacroStability === 'string') ? savedBriefState.vulMacroStability : DEFAULT_MARKET_BRIEF.vulMacroStability;
+    let currentBullets = (savedBriefState && Array.isArray(savedBriefState.bullets) && savedBriefState.bullets.length > 0)
+      ? savedBriefState.bullets
+      : JSON.parse(JSON.stringify(DEFAULT_MARKET_BRIEF.bullets));
+
+    const DEFAULT_FUNDS_DATA = [
+      { id: 'PRULink Bond Fund', name: 'PRULink Bond Fund', currency: 'PHP', symbol: '₱', assetClass: 'Fixed Income', riskLevel: 'Conservative', cagr1Mo: 0.40, cagr1Yr: 4.50, cagr5Yr: 3.20, cagrYtd: 3.60, cagrInception: 5.50, defaultProjectionRate: 4.10, navpu: 2.4510, navpuDate: 'Latest NAVPU', description: 'Focuses on capital preservation and steady interest returns from government and top-tier corporate bonds.', recommendedStrategy: 'TACTICAL ROTATION OUT', switchScore: 60, switchAdvice: 'Consider shifting a portion into dividend or equity funds to stay ahead of inflation.' },
+      { id: 'PRULink Managed Fund', name: 'PRULink Managed Fund', currency: 'PHP', symbol: '₱', assetClass: 'Balanced', riskLevel: 'Moderate', cagr1Mo: 0.65, cagr1Yr: 5.80, cagr5Yr: 4.10, cagrYtd: 4.50, cagrInception: 7.00, defaultProjectionRate: 5.20, navpu: 2.8940, navpuDate: 'Latest NAVPU', description: 'Balanced mix of government bonds, corporate debentures, and prime equities.', recommendedStrategy: 'HOLD', switchScore: 70, switchAdvice: 'Solid foundational asset for conservative-to-moderate risk profiles.' },
+      { id: 'PRULink US Dollar Bond Fund', name: 'PRULink US Dollar Bond Fund', currency: 'USD', symbol: '$', assetClass: 'Fixed Income (USD)', riskLevel: 'Conservative', cagr1Mo: 0.35, cagr1Yr: 4.20, cagr5Yr: 3.00, cagrYtd: 3.40, cagrInception: 5.10, defaultProjectionRate: 3.90, navpu: 1.8520, navpuDate: 'Latest NAVPU', description: 'Invests in US Dollar denominated fixed income instruments.', recommendedStrategy: 'HOLD / DIVERSIFY', switchScore: 65, switchAdvice: 'Provides stable US Dollar yield and currency diversification.' },
+      { id: 'PRULink Growth Fund', name: 'PRULink Growth Fund', currency: 'PHP', symbol: '₱', assetClass: 'Balanced Growth', riskLevel: 'Moderate to Aggressive', cagr1Mo: 0.95, cagr1Yr: 7.10, cagr5Yr: 3.90, cagrYtd: 5.40, cagrInception: 7.80, defaultProjectionRate: 6.20, navpu: 2.1150, navpuDate: 'Latest NAVPU', description: 'Strategic allocation between equities and fixed income for balanced appreciation.', recommendedStrategy: 'HOLD / REGULAR TOP-UP', switchScore: 79, switchAdvice: 'Maintains healthy upside exposure while protecting capital against sudden volatility.' },
+      { id: 'PRULink Equity Fund', name: 'PRULink Equity Fund', currency: 'PHP', symbol: '₱', assetClass: 'Philippine Equities', riskLevel: 'Aggressive', cagr1Mo: 1.25, cagr1Yr: 8.40, cagr5Yr: 2.80, cagrYtd: 6.15, cagrInception: 9.10, defaultProjectionRate: 5.90, navpu: 3.4821, navpuDate: 'Latest NAVPU', description: 'Invests primarily in top blue-chip stocks listed on the Philippine Stock Exchange for maximum long-term capital growth.', recommendedStrategy: 'BUY / ACCUMULATE ON DIP', switchScore: 88, switchAdvice: 'PSEi is at attractive valuation levels. Ideal for long-term investors seeking strong upside recovery.' },
+      { id: 'PRULink Proactive Fund', name: 'PRULink Proactive Fund', currency: 'PHP', symbol: '₱', assetClass: 'Dynamic Managed', riskLevel: 'Moderate to Aggressive', cagr1Mo: 1.10, cagr1Yr: 7.50, cagr5Yr: 4.20, cagrYtd: 5.80, cagrInception: 8.20, defaultProjectionRate: 6.40, navpu: 2.3410, navpuDate: 'Latest NAVPU', description: 'Actively managed asset allocation strategy adapting to market trends.', recommendedStrategy: 'ACCUMULATE', switchScore: 82, switchAdvice: 'Dynamic asset allocation captures upside momentum.' },
+      { id: 'PRULink Cash Flow Fund', name: 'PRULink Cash Flow Fund', currency: 'PHP', symbol: '₱', assetClass: 'Multi-Asset Dividend', riskLevel: 'Moderate', cagr1Mo: 0.80, cagr1Yr: 6.50, cagr5Yr: 5.40, cagrYtd: 5.10, cagrInception: 6.20, defaultProjectionRate: 5.80, navpu: 1.0450, navpuDate: 'Latest NAVPU', description: 'Provides regular dividend cash payouts by investing across global high-yield dividend equities and income bonds.', recommendedStrategy: 'SWITCH / REBALANCE IN (30%)', switchScore: 92, switchAdvice: 'Excellent defensive buffer against inflation and currency fluctuations.' },
+      { id: 'PRULink Peso Cash Flow Fund - Hedged Share Class', name: 'PRULink Peso Cash Flow Fund - Hedged Share Class', currency: 'PHP', symbol: '₱', assetClass: 'Hedged Multi-Asset', riskLevel: 'Moderate', cagr1Mo: 0.75, cagr1Yr: 6.20, cagr5Yr: 5.10, cagrYtd: 4.80, cagrInception: 6.00, defaultProjectionRate: 5.60, navpu: 1.0210, navpuDate: 'Latest NAVPU', description: 'Currency-hedged share class focusing on regular cash flow generation.', recommendedStrategy: 'HOLD / ACCUMULATE', switchScore: 85, switchAdvice: 'Mitigates currency volatility while capturing income.' },
+      { id: 'PRULink Global Market Navigator Fund - Peso Unhedged Share Class', name: 'PRULink Global Market Navigator Fund - Peso Unhedged Share Class', currency: 'PHP', symbol: '₱', assetClass: 'Global Multi-Asset', riskLevel: 'Aggressive', cagr1Mo: 1.35, cagr1Yr: 10.20, cagr5Yr: 6.80, cagrYtd: 7.50, cagrInception: 10.50, defaultProjectionRate: 7.50, navpu: 1.6540, navpuDate: 'Latest NAVPU', description: 'Global multi-asset dynamic allocation strategy denominated in PHP unhedged.', recommendedStrategy: 'BUY / ACCUMULATE', switchScore: 94, switchAdvice: 'Excellent vehicle for global diversification and currency exposure.' },
+      { id: 'PRULink Equity Index Tracker Fund', name: 'PRULink Equity Index Tracker Fund', currency: 'PHP', symbol: '₱', assetClass: 'Index Tracking', riskLevel: 'Aggressive', cagr1Mo: 1.20, cagr1Yr: 8.00, cagr5Yr: 2.70, cagrYtd: 6.00, cagrInception: 8.80, defaultProjectionRate: 5.80, navpu: 1.9820, navpuDate: 'Latest NAVPU', description: 'Tracks the performance of the Philippine stock market index.', recommendedStrategy: 'ACCUMULATE', switchScore: 84, switchAdvice: 'Low tracking error and broad market exposure.' },
+      { id: 'PRULink Global Equity Navigator Fund - Peso Unhedged Share Class', name: 'PRULink Global Equity Navigator Fund - Peso Unhedged Share Class', currency: 'PHP', symbol: '₱', assetClass: 'Global Equities', riskLevel: 'Aggressive', cagr1Mo: 1.50, cagr1Yr: 12.40, cagr5Yr: 8.20, cagrYtd: 9.10, cagrInception: 11.20, defaultProjectionRate: 8.20, navpu: 1.8430, navpuDate: 'Latest NAVPU', description: 'Invests across global equity markets for high growth potential.', recommendedStrategy: 'BUY / ACCUMULATE', switchScore: 95, switchAdvice: 'Captures global tech and market leaders.' },
+      { id: 'PRULink Cash Flow Fund Plus - Peso Hedged Share Class', name: 'PRULink Cash Flow Fund Plus - Peso Hedged Share Class', currency: 'PHP', symbol: '₱', assetClass: 'Enhanced Hedged Income', riskLevel: 'Moderate', cagr1Mo: 0.85, cagr1Yr: 6.80, cagr5Yr: 5.60, cagrYtd: 5.30, cagrInception: 6.50, defaultProjectionRate: 6.00, navpu: 1.0620, navpuDate: 'Latest NAVPU', description: 'Enhanced cash flow distribution with currency hedging.', recommendedStrategy: 'HOLD / INCOME', switchScore: 89, switchAdvice: 'Strong income yield with hedged protection.' },
+      { id: 'PRULink Dollar Cash Flow Fund Plus', name: 'PRULink Dollar Cash Flow Fund Plus', currency: 'USD', symbol: '$', assetClass: 'USD Multi-Asset Dividend', riskLevel: 'Moderate', cagr1Mo: 0.78, cagr1Yr: 6.30, cagr5Yr: 5.20, cagrYtd: 4.90, cagrInception: 6.10, defaultProjectionRate: 5.70, navpu: 1.0510, navpuDate: 'Latest NAVPU', description: 'USD denominated high dividend and cash flow fund.', recommendedStrategy: 'HOLD / DIVERSIFY', switchScore: 88, switchAdvice: 'Ideal for USD capital holders seeking regular distributions.' },
+      { id: 'PRULink Global Tech Navigator Fund', name: 'PRULink Global Tech Navigator Fund', currency: 'USD', symbol: '$', assetClass: 'Global Technology', riskLevel: 'Aggressive', cagr1Mo: 2.10, cagr1Yr: 18.50, cagr5Yr: 12.40, cagrYtd: 14.20, cagrInception: 14.80, defaultProjectionRate: 9.50, navpu: 2.4120, navpuDate: 'Latest NAVPU', description: 'Focuses on global innovation, technology, and disruptive sectors.', recommendedStrategy: 'BUY / ACCUMULATE', switchScore: 98, switchAdvice: 'High growth potential driven by AI, cloud, and digital transformation.' },
+      { id: 'PRULink Flexi Income Fund', name: 'PRULink Flexi Income Fund', currency: 'PHP', symbol: '₱', assetClass: 'Flexible Income', riskLevel: 'Conservative to Moderate', cagr1Mo: 0.55, cagr1Yr: 5.00, cagr5Yr: 4.00, cagrYtd: 4.10, cagrInception: 5.80, defaultProjectionRate: 5.00, navpu: 1.2150, navpuDate: 'Latest NAVPU', description: 'Flexible income generation across various fixed income securities.', recommendedStrategy: 'HOLD', switchScore: 72, switchAdvice: 'Steady income stream with flexible duration.' },
+      { id: 'PRULink Strategic Income Fund - Peso Unhedged Share Class', name: 'PRULink Strategic Income Fund - Peso Unhedged Share Class', currency: 'PHP', symbol: '₱', assetClass: 'Strategic Income', riskLevel: 'Moderate', cagr1Mo: 0.70, cagr1Yr: 5.90, cagr5Yr: 4.80, cagrYtd: 4.60, cagrInception: 6.30, defaultProjectionRate: 5.50, navpu: 1.1540, navpuDate: 'Latest NAVPU', description: 'Strategic global income allocation unhedged in PHP.', recommendedStrategy: 'HOLD', switchScore: 78, switchAdvice: 'Captures global yield opportunities.' },
+      { id: 'PRULink Strategic Income Fund - USD Share Class', name: 'PRULink Strategic Income Fund - USD Share Class', currency: 'USD', symbol: '$', assetClass: 'Strategic Income (USD)', riskLevel: 'Moderate', cagr1Mo: 0.68, cagr1Yr: 5.70, cagr5Yr: 4.60, cagrYtd: 4.40, cagrInception: 6.10, defaultProjectionRate: 5.30, navpu: 1.1410, navpuDate: 'Latest NAVPU', description: 'Strategic global income allocation in USD.', recommendedStrategy: 'HOLD', switchScore: 76, switchAdvice: 'Solid USD income generation.' }
+    ];
+
+    let fundsData = [];
+    try {
+      const storedFunds = JSON.parse(localStorage.getItem('prulink_funds_data'));
+      fundsData = (Array.isArray(storedFunds) && storedFunds.length > 0)
+        ? storedFunds
+        : JSON.parse(JSON.stringify(DEFAULT_FUNDS_DATA));
+    } catch (e) {
+      fundsData = JSON.parse(JSON.stringify(DEFAULT_FUNDS_DATA));
+    }
+
+    let projectionChartInstance = null;
+    let currentRiskFilter = 'All';
+    let lastSelectedFundId = 'PRULink Bond Fund';
+
+    // ==================== INITIALIZATION ====================
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      renderGeneralTopicDropdown();
+      initBriefFeedEditor();
+      renderBriefBullets();
+      initCalculatorDropdowns();
+      updateProjection();
+      initRecommendations();
+      initSwitchDropdowns();
+
+      document.addEventListener('click', function(e) {
+        const btn = document.getElementById('generalTopicBtn');
+        const menu = document.getElementById('generalTopicMenu');
+        if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+          menu.classList.add('hidden');
+        }
+      });
+    });
+
+    // ==================== MAIN & SUB-TAB NAVIGATION ====================
+    function switchMainView(viewName) {
+      document.querySelectorAll('.main-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(`view-${viewName}`).classList.add('active');
+
+      const btnStudio = document.getElementById('nav-email-studio');
+      const btnMarket = document.getElementById('nav-market-hub');
+
+      if (viewName === 'email-studio') {
+        btnStudio.className = 'px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-red-800 shadow transition flex items-center gap-1.5';
+        btnMarket.className = 'px-3 py-1.5 text-xs font-bold rounded-lg text-white hover:bg-white/10 transition flex items-center gap-1.5';
+      } else {
+        btnMarket.className = 'px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-red-800 shadow transition flex items-center gap-1.5';
+        btnStudio.className = 'px-3 py-1.5 text-xs font-bold rounded-lg text-white hover:bg-white/10 transition flex items-center gap-1.5';
+        updateProjection();
+      }
+    }
+
+    function switchMarketSubTab(subName) {
+      document.querySelectorAll('.market-subtab').forEach(el => el.classList.remove('active'));
+      document.getElementById(`msub-${subName}`).classList.add('active');
+
+      document.querySelectorAll('.msub-btn').forEach(btn => {
+        btn.classList.remove('bg-red-700', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-100', 'hover:text-slate-900');
+      });
+
+      const activeBtn = document.getElementById(`msub-btn-${subName}`);
+      activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100', 'hover:text-slate-900');
+      activeBtn.classList.add('bg-red-700', 'text-white', 'shadow-sm');
+
+      if (subName === 'calculator') {
+        updateProjection();
+      }
+    }
+
+    // ==================== TOAST & CLIPBOARD ====================
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('globalToast');
+      toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i> <span>${message}</span>`;
+      toast.className = 'fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-xs font-semibold shadow-xl border transition-all duration-300 flex items-center gap-2 ';
+
+      if (type === 'error') {
+        toast.classList.add('bg-red-50', 'text-red-800', 'border-red-300');
+      } else if (type === 'info') {
+        toast.classList.add('bg-slate-900', 'text-white', 'border-slate-700');
+      } else {
+        toast.classList.add('bg-emerald-900', 'text-white', 'border-emerald-700');
+      }
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3500);
+    }
+
+    function copyTextSafe(text, successMsg) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg, 'success');
+      } catch (err) {
+        showToast('Failed to copy text.', 'error');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // ==================== INTEGRATION: INJECT MARKET BRIEF TO EMAIL STUDIO ====================
+    function injectMarketBriefToEmail() {
+      const formattedDate = formatDisplayDate(currentSelectedDate);
+      const activeBullets = currentBullets.filter(b => b.headline && b.headline.trim() !== '');
+      const sourcesLine = currentBriefSources.trim() ? `Sources: ${currentBriefSources.trim()}` : 'Market & Economic Update';
+
+      const fundValueText = (currentVulFundValue || '').trim();
+      const macroStabilityText = (currentVulMacroStability || '').trim();
+
+      const defaultBannerUrl = 'https://plus.unsplash.com/premium_photo-1681487769650-a0c3fbaed85a?q=80&w=1855&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D';
+      document.getElementById('customBannerInput').value = defaultBannerUrl;
+      changeBannerUrl(defaultBannerUrl);
+
+      let vulImpactHtml = '';
+      if (fundValueText || macroStabilityText) {
+        const point1Html = fundValueText
+          ? `<p style="margin: 0 0 ${macroStabilityText ? '8px' : '0'} 0; font-size: 13px; color: #374151; line-height: 1.5; font-family: Arial, sans-serif;">
+              <strong>1. Fund Value & Unit Accumulation:</strong> ${escapeHtml(fundValueText)}
+            </p>`
+          : '';
+        const point2Html = macroStabilityText
+          ? `<p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.5; font-family: Arial, sans-serif;">
+              <strong>2. Inflation & Portfolio Stability:</strong> ${escapeHtml(macroStabilityText)}
+            </p>`
+          : '';
+
+        vulImpactHtml = `
+          <!-- VUL Policy Impact Section -->
+          <div style="background-color: #fef2f2; border-left: 4px solid #b91c1c; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px; font-family: Arial, sans-serif;">
+              How This Affects VUL Policies
+            </p>
+            ${point1Html}
+            ${point2Html}
+          </div>
+        `;
+      }
+
+      document.getElementById('inputSubjectLine').value = `Daily Market Update & VUL Policies Outlook (${formattedDate})`;
+      document.getElementById('emailSubheading').innerText = `DAILY MARKET BRIEF • ${formattedDate.toUpperCase()}`;
+      document.getElementById('emailMainHeading').innerText = `Market Highlights & VUL Policies Outlook`;
+      document.getElementById('inputCtaText').value = `Schedule a Free Policy Review`;
+      document.getElementById('emailCtaBtn').innerText = `Schedule a Free Policy Review`;
+
+      const bulletsHtml = activeBullets.map((b, idx) => {
+        const badgeLabel = escapeHtml((b.category || 'MARKET UPDATE').toUpperCase());
+        const num = idx + 1;
+
+        return `
+          <tr>
+            <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding-bottom: 6px;">
+                    <span style="display: inline-block; background-color: #991b1b; color: #ffffff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; margin-right: 6px; font-family: Arial, sans-serif;">${num}</span>
+                    <span style="display: inline-block; background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 4px; font-family: Arial, sans-serif;">${badgeLabel}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <p style="margin: 0; font-size: 13px; color: #1e293b; line-height: 1.5; font-family: Arial, sans-serif;">
+                      ${escapeHtml(b.headline)}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('emailBodyText').innerHTML = `
+        <p style="margin-bottom: 20px; font-size: 14px; line-height: 1.6; color: #334155;">
+          Here is your quick read on today's markets & economic indicators:
+        </p>
+
+        <!-- DAILY MARKET BRIEF Card Format with Gradient Red Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <!-- Gradient Red Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(to right, #b91c1c, #dc2626, #881337); padding: 22px 20px; color: #ffffff;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: #ffffff; font-family: Arial, sans-serif; letter-spacing: -0.5px;">DAILY MARKET BRIEF</h2>
+                  </td>
+                  <td align="right">
+                    <div style="font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #fed7d7;">Financial Markets</div>
+                    <div style="font-size: 9px; color: #feb2b2;">Investment Insights</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.3); margin-top: 10px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-size: 11px; color: #f1f5f9; line-height: 1.4;">
+                          Your quick read on today's markets & economic indicators
+                        </td>
+                        <td align="right">
+                          <span style="display: inline-block; background-color: rgba(0,0,0,0.3); color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2);">${formattedDate}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Accent Line -->
+          <tr>
+            <td style="background-color: #b91c1c; height: 4px;"></td>
+          </tr>
+          <!-- Bullets -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                ${bulletsHtml}
+              </table>
+            </td>
+          </tr>
+          <!-- Sources Footer -->
+          <tr>
+            <td style="background-color: #f1f5f9; padding: 12px 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0; font-size: 10px; color: #64748b; font-family: Arial, sans-serif;">
+                ${escapeHtml(sourcesLine)}
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        ${vulImpactHtml}
+
+        <p style="margin-bottom: 16px; font-size: 14px; line-height: 1.6; color: #334155;">
+          Remember that your VUL policy combines life insurance protection with long-term investment growth. Staying invested through daily market swings helps keep your financial goals on track.
+        </p>
+      `;
+
+      switchMainView('email-studio');
+      showToast(`Loaded ${formattedDate} DAILY MARKET BRIEF into Email Studio with gradient red header!`, 'success');
+    }
+
+    // ==================== EMAIL STUDIO FUNCTIONS ====================
+    function toggleGeneralTopicMenu(e) {
+      e.stopPropagation();
+      document.getElementById('generalTopicMenu').classList.toggle('hidden');
+    }
+
+    function renderGeneralTopicDropdown() {
+      const menu = document.getElementById('generalTopicMenu');
+      const btnText = document.getElementById('generalTopicBtnText');
+      const keys = Object.keys(EMAIL_TEMPLATES);
+
+      menu.innerHTML = '';
+      if (keys.length === 0) {
+        btnText.innerText = "-- Mag-upload ng Excel File sa ibaba --";
+        selectedGeneralTopicKey = "";
+        updateSubTopicDropdown();
+        return;
+      }
+
+      keys.forEach((key, index) => {
+        const label = EMAIL_TEMPLATES[key][0]?._generalTopicLabel || key.toUpperCase();
+        const item = document.createElement('div');
+        item.className = "px-3 py-2.5 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium transition truncate flex items-center justify-between";
+        item.innerText = label;
+        item.onclick = function() {
+          selectedGeneralTopicKey = key;
+          btnText.innerText = label;
+          menu.classList.add('hidden');
+          updateSubTopicDropdown();
+        };
+        menu.appendChild(item);
+
+        if (index === 0 && !selectedGeneralTopicKey) {
+          selectedGeneralTopicKey = key;
+          btnText.innerText = label;
+        }
+      });
+
+      if (selectedGeneralTopicKey && EMAIL_TEMPLATES[selectedGeneralTopicKey]) {
+        btnText.innerText = EMAIL_TEMPLATES[selectedGeneralTopicKey][0]?._generalTopicLabel || selectedGeneralTopicKey.toUpperCase();
+      }
+
+      updateSubTopicDropdown();
+    }
+
+    function updateSubTopicDropdown() {
+      const subTopicSelect = document.getElementById('subTopicSelect');
+      const templates = EMAIL_TEMPLATES[selectedGeneralTopicKey] || [];
+
+      subTopicSelect.innerHTML = '';
+      if (templates.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.innerText = "Wala pang sub-topics sa General Topic na ito.";
+        subTopicSelect.appendChild(opt);
+        return;
+      }
+
+      templates.forEach((t, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = t.subTopicTitle;
+        subTopicSelect.appendChild(opt);
+      });
+
+      loadSelectedTemplate();
+    }
+
+    function onSubTopicChange() {
+      loadSelectedTemplate();
+    }
+
+    function loadSelectedTemplate() {
+      const subTopicIdx = document.getElementById('subTopicSelect').value;
+      if (!selectedGeneralTopicKey || subTopicIdx === "") return;
+      const templates = EMAIL_TEMPLATES[selectedGeneralTopicKey];
+      if (!templates || !templates[subTopicIdx]) return;
+      const template = templates[subTopicIdx];
+
+      document.getElementById('inputSubjectLine').value = template.subject || "";
+      document.getElementById('emailSubheading').innerText = template.subheading || "";
+      document.getElementById('emailMainHeading').innerText = template.mainHeading || "";
+      document.getElementById('inputCtaText').value = template.ctaText || "Learn More";
+      document.getElementById('emailCtaBtn').innerText = template.ctaText || "Learn More";
+      document.getElementById('inputCtaUrl').value = template.ctaUrl || "https://example.com";
+      document.getElementById('emailCtaBtn').href = template.ctaUrl || "https://example.com";
+      
+      if (template.banner) {
+        changeBannerUrl(template.banner);
+      }
+
+      if (template.paragraphs && template.paragraphs.length > 0) {
+        document.getElementById('emailBodyText').innerHTML = template.paragraphs
+          .map(p => `<p style="margin-bottom: 12px; line-height: 1.6;">${p}</p>`)
+          .join('');
+      }
+    }
+
+    function handleTopicFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById('topicFileNameDisplay').innerText = `Loaded: ${file.name}`;
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        try {
+          let rawData = [];
+          if (file.name.endsWith('.json')) {
+            rawData = JSON.parse(e.target.result);
+          } else {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            rawData = XLSX.utils.sheet_to_json(worksheet);
+          }
+
+          if (!Array.isArray(rawData) || rawData.length === 0) {
+            showToast('Walang nakitang valid data sa file.', 'error');
+            return;
+          }
+
+          EMAIL_TEMPLATES = {};
+          selectedGeneralTopicKey = "";
+
+          rawData.forEach(row => {
+            const generalTopic = row["Select General Topic"] || row["generalTopic"] || "General Topic";
+            const subTopic = row["Select Sub-Topic"] || row["subTopic"] || row["subTopicTitle"] || "Sub-Topic";
+            
+            const paragraphs = [
+              row["Paragraph 1"] || row["paragraph1"],
+              row["Paragraph 2"] || row["paragraph2"],
+              row["Paragraph 3"] || row["paragraph3"]
+            ].filter(Boolean);
+
+            const templateObj = {
+              _generalTopicLabel: generalTopic,
+              subTopicTitle: subTopic,
+              subject: row["Email Subject Line"] || row["Subject"] || row["subject"] || "Important Update",
+              subheading: row["Sub-heading"] || row["subheading"] || "UPDATE",
+              mainHeading: row["Main heading"] || row["mainHeading"] || subTopic,
+              banner: row["Header Banner Image URL"] || row["banner"] || "https://plus.unsplash.com/premium_photo-1681487769650-a0c3fbaed85a?q=80&w=1855&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
+              ctaText: row["Button Text"] || row["ctaText"] || "Learn More",
+              ctaUrl: row["Target URL"] || row["ctaUrl"] || "https://example.com",
+              paragraphs: paragraphs.length > 0 ? paragraphs : ["Ito ang iyong custom email content."]
+            };
+
+            const key = generalTopic.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            if (!EMAIL_TEMPLATES[key]) {
+              EMAIL_TEMPLATES[key] = [];
+            }
+            EMAIL_TEMPLATES[key].push(templateObj);
+          });
+
+          localStorage.setItem('saved_email_templates', JSON.stringify(EMAIL_TEMPLATES));
+          renderGeneralTopicDropdown();
+          showToast('Matagumpay na nai-load at nai-save ang mga topics!', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Hindi mabasa ang file. Pakitiyak na tama ang format.', 'error');
+        }
+      };
+
+      if (file.name.endsWith('.json')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    function openGmailSetupModal() {
+      document.getElementById('gmailWebhookInput').value = savedWebhookUrl;
+      document.getElementById('gmailSetupModal').classList.remove('hidden');
+    }
+
+    function closeGmailSetupModal() {
+      document.getElementById('gmailSetupModal').classList.add('hidden');
+    }
+
+    function saveGmailSetup() {
+      const url = document.getElementById('gmailWebhookInput').value.trim();
+      savedWebhookUrl = url;
+      localStorage.setItem('gmail_webhook_url', url);
+      closeGmailSetupModal();
+      showToast('Gmail Webhook URL saved successfully!', 'success');
+    }
+
+    function copyGasCode() {
+      const code = document.getElementById('gasTemplateCode').innerText;
+      copyTextSafe(code, 'Apps Script code copied to clipboard!');
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById('fileNameDisplay').innerText = `Loaded: ${file.name}`;
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+
+          recipientsList = [];
+          json.forEach(row => {
+            const keys = Object.keys(row);
+            const nameKey = keys.find(k => /name|nombre|client|customer/i.test(k)) || keys[0];
+            const emailKey = keys.find(k => /email|mail|correo/i.test(k)) || keys[1];
+
+            if (row[emailKey]) {
+              recipientsList.push({
+                name: row[nameKey] || 'Valued Client',
+                email: String(row[emailKey]).trim(),
+                status: 'Ready'
+              });
+            }
+          });
+
+          renderRecipientTable();
+          showToast(`Successfully imported ${recipientsList.length} recipients!`, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Could not parse Excel file.', 'error');
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderRecipientTable() {
+      const container = document.getElementById('recipientListContainer');
+      const tbody = document.getElementById('recipientTableBody');
+      const badge = document.getElementById('recipientCountBadge');
+
+      badge.innerText = `${recipientsList.length} Recipients`;
+
+      if (recipientsList.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      tbody.innerHTML = recipientsList.map((r) => `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+          <td class="p-2 font-medium text-slate-800 dark:text-slate-200">${r.name}</td>
+          <td class="p-2 text-slate-600 dark:text-slate-300 font-mono text-[11px]">${r.email}</td>
+          <td class="p-2 text-center">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+              r.status === 'Sent' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+            }">${r.status}</span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function sendBatchEmails() {
+      if (recipientsList.length === 0) {
+        showToast('Please upload an Excel file with recipient details first.', 'error');
+        return;
+      }
+
+      if (!savedWebhookUrl) {
+        showToast('Please set up your Gmail Webhook URL first.', 'error');
+        openGmailSetupModal();
+        return;
+      }
+
+      const sendBtn = document.getElementById('btnSendAllMailto');
+      const sendIcon = document.getElementById('sendIcon');
+      const sendBtnText = document.getElementById('sendBtnText');
+
+      sendBtn.disabled = true;
+      sendIcon.className = "fa-solid fa-spinner fa-spin";
+      sendBtnText.innerText = "Sending...";
+
+      const subject = document.getElementById('inputSubjectLine').value;
+      const htmlBody = document.getElementById('emailContainer').outerHTML;
+
+      showToast('Dispatching emails via Gmail Webhook...', 'info');
+
+      try {
+        await fetch(savedWebhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipients: recipientsList,
+            subject: subject,
+            htmlBody: htmlBody
+          })
+        });
+
+        recipientsList.forEach(r => r.status = 'Sent');
+        renderRecipientTable();
+        showToast('Emails dispatched successfully!', 'success');
+        
+        sendIcon.className = "fa-solid fa-check";
+        sendBtnText.innerText = "Sent Successfully";
+      } catch (err) {
+        console.error(err);
+        showToast('Error connecting to Webhook.', 'error');
+        sendBtn.disabled = false;
+        sendIcon.className = "fa-solid fa-paper-plane";
+        sendBtnText.innerText = "Send Batch Emails via Gmail";
+      }
+    }
+
+    function changeBannerUrl(url) {
+      if (!url) return;
+      document.getElementById('emailHeaderBanner').style.backgroundImage = `url('${url}')`;
+      document.getElementById('customBannerInput').value = url;
+    }
+
+    function toggleCtaButton(show) {
+      const container = document.getElementById('emailCtaContainer');
+      const wrapper = document.getElementById('ctaInputsWrapper');
+      if (show) {
+        container.style.display = 'block';
+        wrapper.classList.remove('hidden');
+      } else {
+        container.style.display = 'none';
+        wrapper.classList.add('hidden');
+      }
+    }
+
+    function updateCta() {
+      const text = document.getElementById('inputCtaText').value;
+      const url = document.getElementById('inputCtaUrl').value;
+      const btn = document.getElementById('emailCtaBtn');
+      btn.innerText = text;
+      btn.href = url || '#';
+    }
+
+    function updateSignoff() {
+      const name = document.getElementById('inputSenderName').value;
+      const title = document.getElementById('selectSenderTitle').value;
+      document.getElementById('emailSignoffName').innerText = name;
+      document.getElementById('emailSignoffTitle').innerText = title;
+    }
+
+    function setDeviceView(mode) {
+      const wrapper = document.getElementById('previewWrapper');
+      const btnDesktop = document.getElementById('btnDeviceDesktop');
+      const btnMobile = document.getElementById('btnDeviceMobile');
+
+      if (mode === 'mobile') {
+        wrapper.className = 'preview-mobile w-full transition-all duration-300';
+        btnMobile.className = 'px-2.5 py-1 text-xs font-medium rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 shadow-sm transition';
+        btnDesktop.className = 'px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 transition';
+      } else {
+        wrapper.className = 'preview-desktop w-full transition-all duration-300';
+        btnDesktop.className = 'px-2.5 py-1 text-xs font-medium rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 shadow-sm transition';
+        btnMobile.className = 'px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 transition';
+      }
+    }
+
+    function downloadHtmlFile() {
+      const htmlContent = document.getElementById('emailContainer').outerHTML;
+      const fullDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Client Email Update</title></head><body style="margin:0;padding:20px;background-color:#f3f4f6;">${htmlContent}</body></html>`;
+      const blob = new Blob([fullDoc], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Client_Update_${currentSelectedDate}.html`;
+      a.click();
+      showToast('HTML Email Template downloaded!', 'success');
+    }
+
+    // ==================== DAILY MARKET BRIEF (MANUAL FEED & LIVE PREVIEW) ====================
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function saveBriefStateToStorage() {
+      try {
+        localStorage.setItem('user_daily_market_brief', JSON.stringify({
+          date: currentSelectedDate,
+          sources: currentBriefSources,
+          vulFundValue: currentVulFundValue,
+          vulMacroStability: currentVulMacroStability,
+          bullets: currentBullets
+        }));
+      } catch (e) {
+        console.error('Could not save brief state:', e);
+      }
+    }
+
+    function initBriefFeedEditor() {
+      const dateInput = document.getElementById('briefDateInput');
+      const sourcesInput = document.getElementById('briefSourcesInput');
+      const vulFundInput = document.getElementById('vulFundValueInput');
+      const vulMacroInput = document.getElementById('vulMacroStabilityInput');
+
+      if (dateInput) dateInput.value = currentSelectedDate;
+      if (sourcesInput) sourcesInput.value = currentBriefSources;
+      if (vulFundInput) vulFundInput.value = currentVulFundValue;
+      if (vulMacroInput) vulMacroInput.value = currentVulMacroStability;
+
+      renderBriefFeedEditorList();
+    }
+
+    function onVulImpactChange() {
+      const vulFundInput = document.getElementById('vulFundValueInput');
+      const vulMacroInput = document.getElementById('vulMacroStabilityInput');
+      if (vulFundInput) currentVulFundValue = vulFundInput.value;
+      if (vulMacroInput) currentVulMacroStability = vulMacroInput.value;
+      saveBriefStateToStorage();
+    }
+
+    function renderBriefFeedEditorList() {
+      const listEl = document.getElementById('briefFeedEditorList');
+      if (!listEl) return;
+
+      listEl.innerHTML = currentBullets.map((b, idx) => `
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 transition hover:border-slate-300">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-1">
+              <span class="w-5 h-5 rounded-full bg-red-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                ${idx + 1}
+              </span>
+              <select
+                onchange="updateBriefBulletIcon(${idx}, this.value)"
+                class="text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none w-full"
+              >
+                <option value="shopping-cart" ${b.iconType === 'shopping-cart' ? 'selected' : ''}>🛒 Inflation / Consumer Prices</option>
+                <option value="oil-barrel" ${b.iconType === 'oil-barrel' ? 'selected' : ''}>🛢️ Commodities / Oil</option>
+                <option value="peso" ${b.iconType === 'peso' ? 'selected' : ''}>₱ Foreign Exchange (USD/PHP)</option>
+                <option value="chart-line-down" ${b.iconType === 'chart-line-down' ? 'selected' : ''}>📈 Equities (Local / PSEi)</option>
+                <option value="us-equities" ${b.iconType === 'us-equities' ? 'selected' : ''}>📊 Equities (Global / US)</option>
+              </select>
+            </div>
+            ${currentBullets.length > 1 ? `
+              <button
+                type="button"
+                onclick="removeBriefBullet(${idx})"
+                title="Remove item"
+                class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+              >
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            ` : ''}
+          </div>
+          <textarea
+            rows="2"
+            oninput="updateBriefBulletText(${idx}, this.value)"
+            placeholder="I-type dito ang market update para sa item na ito..."
+            class="w-full text-xs text-slate-800 bg-white border border-slate-300 rounded-lg p-2 leading-relaxed focus:ring-2 focus:ring-red-500 focus:outline-none"
+          >${escapeHtml(b.headline)}</textarea>
+        </div>
+      `).join('');
+    }
+
+    function updateBriefBulletIcon(idx, newIconType) {
+      if (!currentBullets[idx]) return;
+      currentBullets[idx].iconType = newIconType;
+      currentBullets[idx].category = ICON_CATEGORY_MAP[newIconType] || 'Market Update';
+      saveBriefStateToStorage();
+      renderBriefBullets();
+    }
+
+    function updateBriefBulletText(idx, newText) {
+      if (!currentBullets[idx]) return;
+      currentBullets[idx].headline = newText;
+      saveBriefStateToStorage();
+      renderBriefBullets();
+    }
+
+    function addBriefBullet() {
+      const iconKeys = Object.keys(ICON_CATEGORY_MAP);
+      const nextIcon = iconKeys[currentBullets.length % iconKeys.length];
+      currentBullets.push({
+        id: String(Date.now()),
+        category: ICON_CATEGORY_MAP[nextIcon],
+        iconType: nextIcon,
+        headline: ''
+      });
+      saveBriefStateToStorage();
+      renderBriefFeedEditorList();
+      renderBriefBullets();
+    }
+
+    function removeBriefBullet(idx) {
+      if (currentBullets.length <= 1) return;
+      currentBullets.splice(idx, 1);
+      saveBriefStateToStorage();
+      renderBriefFeedEditorList();
+      renderBriefBullets();
+    }
+
+    function onBriefFeedChange() {
+      const dateVal = document.getElementById('briefDateInput').value;
+      const sourcesVal = document.getElementById('briefSourcesInput').value;
+      if (dateVal) currentSelectedDate = dateVal;
+      currentBriefSources = sourcesVal;
+      saveBriefStateToStorage();
+      renderBriefBullets();
+    }
+
+    function clearBriefFeed() {
+      currentSelectedDate = getTodayIsoDate();
+      currentBriefSources = 'Associated Press, BusinessWorld, CNBC, MarketWatch';
+      currentVulFundValue = '';
+      currentVulMacroStability = '';
+      currentBullets = [
+        { id: '1', category: 'Inflation / Consumer Prices', iconType: 'shopping-cart', headline: '' },
+        { id: '2', category: 'Commodities / Oil', iconType: 'oil-barrel', headline: '' },
+        { id: '3', category: 'Foreign Exchange (USD/PHP)', iconType: 'peso', headline: '' },
+        { id: '4', category: 'Equities (Local / PSEi)', iconType: 'chart-line-down', headline: '' },
+        { id: '5', category: 'Equities (Global / US)', iconType: 'us-equities', headline: '' }
+      ];
+      document.getElementById('briefDateInput').value = currentSelectedDate;
+      document.getElementById('briefSourcesInput').value = currentBriefSources;
+      document.getElementById('vulFundValueInput').value = '';
+      document.getElementById('vulMacroStabilityInput').value = '';
+      saveBriefStateToStorage();
+      renderBriefFeedEditorList();
+      renderBriefBullets();
+      showToast('Cleared fields for a new DAILY MARKET BRIEF!', 'info');
+    }
+
+    function formatDisplayDate(dateStr) {
+      try {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day);
+        const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+        const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
+        return `${day} ${monthName} ${year} | ${weekday}`;
+      } catch {
+        return dateStr;
+      }
+    }
+
+    function getBulletIconSvg(type) {
+      switch (type) {
+        case 'shopping-cart':
+          return `<div class="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 text-red-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>`;
+        case 'oil-barrel':
+          return `<div class="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 text-red-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          </div>`;
+        case 'peso':
+          return `<div class="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 text-red-600 font-bold text-lg">₱</div>`;
+        case 'chart-line-down':
+          return `<div class="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 text-red-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>`;
+        default:
+          return `<div class="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0 text-red-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>`;
+      }
+    }
+
+    function renderBriefBullets() {
+      const container = document.getElementById('briefBulletsContainer');
+      const dateDisplay = document.getElementById('displayBriefDate');
+      const sourcesDisplay = document.getElementById('displayBriefSources');
+
+      if (dateDisplay) dateDisplay.textContent = formatDisplayDate(currentSelectedDate);
+      if (sourcesDisplay) {
+        sourcesDisplay.textContent = currentBriefSources.trim()
+          ? `Sources: ${currentBriefSources.trim()}`
+          : 'Financial Markets & Economic Insights';
+      }
+
+      const activeBullets = currentBullets.filter(b => b.headline && b.headline.trim() !== '');
+
+      if (activeBullets.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs">
+            Wala pang market updates na nakalagay. I-type ang iyong daily brief info sa panel sa kanan upang lumabas dito.
+          </div>
+        `;
+      } else {
+        container.innerHTML = activeBullets.map(b => `
+          <div class="flex items-start space-x-4">
+            ${getBulletIconSvg(b.iconType)}
+            <div class="flex-1">
+              <p class="text-sm font-medium text-slate-800 leading-relaxed">
+                ${escapeHtml(b.headline)}
+              </p>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function downloadPng() {
+      const element = document.getElementById('briefCardCapture');
+      const btnText = document.getElementById('downloadBtnText');
+      btnText.textContent = 'Saving...';
+
+      try {
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        const link = document.createElement('a');
+        link.download = `DAILY_MARKET_BRIEF_${currentSelectedDate}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('Downloaded PNG image!', 'success');
+      } catch (err) {
+        showToast('Error generating PNG.', 'error');
+      } finally {
+        btnText.textContent = 'PNG';
+      }
+    }
+
+    function copyBriefBroadcast() {
+      const formattedDate = formatDisplayDate(currentSelectedDate);
+      const activeBullets = currentBullets.filter(b => b.headline && b.headline.trim() !== '');
+      const sourceFooter = currentBriefSources.trim() ? `\n🔍 *Sources:* ${currentBriefSources.trim()}\n` : '';
+      const message = `📊 *DAILY MARKET BRIEF*
+📅 ${formattedDate}
+*Your quick read on today's markets & economic indicators*
+
+${activeBullets.map((b, i) => `${i + 1}️⃣ *${b.category.toUpperCase()}*: ${b.headline.trim()}`).join('\n\n')}
+${sourceFooter}
+---
+💬 *Want a free portfolio performance review or fund projection update? Message me anytime!*`;
+
+      copyTextSafe(message, 'Broadcast message copied to clipboard!');
+    }
+
+    // ==================== FUND CALCULATOR & SWITCHING FUNCTIONS ====================
+    function formatMetricPct(val) {
+      if (val === null || val === undefined || isNaN(val)) return 'n.a.';
+      return `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+    }
+
+    function getMetricColorClass(val, highlight = false) {
+      if (val === null || val === undefined || isNaN(val)) return 'text-slate-400';
+      if (highlight) return val >= 0 ? 'text-red-700' : 'text-red-600';
+      return val >= 0 ? 'text-emerald-600' : 'text-rose-600';
+    }
+
+    function initCalculatorDropdowns() {
+      const selector = document.getElementById('fundSelector');
+      selector.innerHTML = fundsData.map(f => `<option value="${f.id}">${f.name} [${f.currency}]</option>`).join('');
+      document.getElementById('customRateInput').value = fundsData[0].defaultProjectionRate;
+    }
+
+    function resetCustomRate() {
+      const fundId = document.getElementById('fundSelector').value;
+      const fund = fundsData.find(f => f.id === fundId) || fundsData[0];
+      document.getElementById('customRateInput').value = fund.defaultProjectionRate;
+      updateProjection();
+    }
+
+    function updateProjection() {
+      const fundId = document.getElementById('fundSelector').value;
+      const fund = fundsData.find(f => f.id === fundId) || fundsData[0];
+      const sym = fund.symbol || '₱';
+
+      document.getElementById('actualFundValueLabel').textContent = `Client's Current Actual Fund Value (${fund.currency}):`;
+      document.getElementById('currencyPrefixSymbol').textContent = sym;
+
+      if (fundId !== lastSelectedFundId) {
+        document.getElementById('customRateInput').value = fund.defaultProjectionRate;
+        lastSelectedFundId = fundId;
+      }
+
+      document.getElementById('resetRateBtn').textContent = `Use Benchmark Rate (${fund.defaultProjectionRate}%)`;
+
+      const metricsHtml = `
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">NAVPU (${fund.navpuDate})</div>
+          <div class="text-base font-extrabold text-red-700">${sym}${fund.navpu.toFixed(5)}</div>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">1-Month</div>
+          <div class="text-base font-bold ${getMetricColorClass(fund.cagr1Mo)}">${formatMetricPct(fund.cagr1Mo)}</div>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">Year-to-Date</div>
+          <div class="text-base font-bold ${getMetricColorClass(fund.cagrYtd)}">${formatMetricPct(fund.cagrYtd)}</div>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">1-Year Return</div>
+          <div class="text-base font-bold ${getMetricColorClass(fund.cagr1Yr)}">${formatMetricPct(fund.cagr1Yr)}</div>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">5-Year Ann.</div>
+          <div class="text-base font-bold ${getMetricColorClass(fund.cagr5Yr)}">${formatMetricPct(fund.cagr5Yr)}</div>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+          <div class="text-[10px] text-slate-500 font-bold uppercase">Since Inception</div>
+          <div class="text-base font-bold ${getMetricColorClass(fund.cagrInception, true)}">${formatMetricPct(fund.cagrInception)}</div>
+        </div>
+      `;
+      document.getElementById('fundMetricsGrid').innerHTML = metricsHtml;
+
+      const actualValue = Math.max(0, Number(document.getElementById('actualFundValueInput').value) || 0);
+      const years = Number(document.getElementById('horizonSlider').value) || 10;
+      const customRatePercent = Number(document.getElementById('customRateInput').value);
+      const rate = (!isNaN(customRatePercent) ? customRatePercent : fund.defaultProjectionRate) / 100;
+      const optimisticRate = rate + 0.03;
+
+      document.getElementById('horizonLabel').textContent = `${years} Year${years > 1 ? 's' : ''}`;
+      document.getElementById('projectedHorizonText').textContent = `Projected Value in ${years} Year${years > 1 ? 's' : ''} (${fund.currency})`;
+      document.getElementById('chartTitleText').textContent = `Portfolio Value Trajectory Projection (${fund.name})`;
+
+      const labels = ['Current'];
+      const historicalSeries = [Math.round(actualValue)];
+      const optimisticSeries = [Math.round(actualValue)];
+
+      let currHist = actualValue;
+      let currOpt = actualValue;
+
+      for (let yr = 1; yr <= years; yr++) {
+        currHist = currHist * (1 + rate);
+        currOpt = currOpt * (1 + optimisticRate);
+        labels.push(`+${yr} Yr${yr > 1 ? 's' : ''}`);
+        historicalSeries.push(Math.round(currHist));
+        optimisticSeries.push(Math.round(currOpt));
+      }
+
+      const finalVal = historicalSeries[historicalSeries.length - 1];
+      const gainVal = finalVal - actualValue;
+
+      document.getElementById('projectedFinalValue').textContent = `${sym}${finalVal.toLocaleString()}`;
+      document.getElementById('projectedGainValue').textContent = `${gainVal >= 0 ? '+' : '-'}${sym}${Math.abs(gainVal).toLocaleString()}`;
+
+      renderChart(labels, historicalSeries, optimisticSeries, sym);
+    }
+
+    function renderChart(labels, historicalData, optimisticData, currencySymbol = '₱') {
+      const ctx = document.getElementById('projectionChartCanvas').getContext('2d');
+
+      if (projectionChartInstance) {
+        projectionChartInstance.destroy();
+      }
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(185, 28, 28, 0.25)');
+      gradient.addColorStop(1, 'rgba(185, 28, 28, 0.0)');
+
+      projectionChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Projected Value (Assumed Rate)',
+              data: historicalData,
+              borderColor: '#b91c1c',
+              backgroundColor: gradient,
+              borderWidth: 3,
+              fill: true,
+              tension: 0.35,
+              pointRadius: 3,
+              pointBackgroundColor: '#b91c1c'
+            },
+            {
+              label: 'Optimistic Scenario (+3% p.a.)',
+              data: optimisticData,
+              borderColor: '#10b981',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.35,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${currencySymbol}${Number(context.raw).toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                color: '#64748b',
+                font: { size: 11 },
+                callback: function(value) { return currencySymbol + (value / 1000).toFixed(0) + 'k'; }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function filterRisk(risk) {
+      currentRiskFilter = risk;
+      document.querySelectorAll('.risk-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-risk') === risk) {
+          btn.className = 'risk-filter-btn px-3 py-1 rounded-lg text-xs font-medium bg-white text-slate-900 shadow transition-all';
+        } else {
+          btn.className = 'risk-filter-btn px-3 py-1 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-all';
+        }
+      });
+      initRecommendations();
+    }
+
+    function initRecommendations() {
+      const grid = document.getElementById('recommendationCardsGrid');
+      const filtered = currentRiskFilter === 'All'
+        ? fundsData
+        : fundsData.filter(f => f.riskLevel.toLowerCase().includes(currentRiskFilter.toLowerCase()));
+
+      grid.innerHTML = filtered.map(fund => {
+        const badgeColor = fund.recommendedStrategy.includes('TOP') || fund.recommendedStrategy.includes('BUY')
+          ? 'bg-emerald-100 text-emerald-800'
+          : fund.recommendedStrategy.includes('SWITCH')
+          ? 'bg-amber-100 text-amber-800'
+          : 'bg-blue-100 text-blue-800';
+
+        return `
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wide">
+                  ${fund.currency} • ${fund.assetClass}
+                </span>
+                <span class="text-[10px] font-bold px-2.5 py-1 rounded-full ${badgeColor} text-right">
+                  ${fund.recommendedStrategy}
+                </span>
+              </div>
+
+              <h3 class="font-bold text-slate-900 text-base mb-1">${fund.name}</h3>
+              <p class="text-xs text-slate-500 mb-3">${fund.description}</p>
+
+              <div class="bg-slate-50 p-3 rounded-xl grid grid-cols-3 gap-2 items-center mb-4">
+                <div>
+                  <div class="text-[10px] text-slate-400 font-semibold">1-Yr Return</div>
+                  <div class="text-sm font-extrabold ${getMetricColorClass(fund.cagr1Yr)}">${formatMetricPct(fund.cagr1Yr)}</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[10px] text-slate-400 font-semibold">Since Incep.</div>
+                  <div class="text-xs font-bold ${getMetricColorClass(fund.cagrInception, true)}">${formatMetricPct(fund.cagrInception)} p.a.</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-[10px] text-slate-400 font-semibold">Risk Rating</div>
+                  <div class="text-xs font-bold text-slate-700">${fund.riskLevel}</div>
+                </div>
+              </div>
+
+              <div class="text-xs text-slate-700 space-y-1.5 border-t border-slate-100 pt-3">
+                <span class="font-bold text-slate-900 block">Fund Strategy Note:</span>
+                <p class="text-slate-600 leading-relaxed bg-red-50/50 p-2.5 rounded-xl border border-red-200/50">
+                  ${fund.switchAdvice}
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span class="text-slate-400">NAVPU: ${fund.symbol}${fund.navpu.toFixed(4)}</span>
+              <span class="font-extrabold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-lg border border-red-100">
+                Score: ${fund.switchScore} / 100
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function initSwitchDropdowns() {
+      const fromSelect = document.getElementById('switchFromSelect');
+      const toSelect = document.getElementById('switchToSelect');
+
+      const optionsHtml = fundsData.map(f => `<option value="${f.id}">${f.name} [${f.currency}] (${formatMetricPct(f.cagr1Yr)} 1Yr)</option>`).join('');
+      fromSelect.innerHTML = optionsHtml;
+      toSelect.innerHTML = optionsHtml;
+
+      fromSelect.value = 'PRULink Bond Fund';
+      toSelect.value = 'PRULink Cash Flow Fund';
+      updateSwitchSummary();
+    }
+
+    function updateSwitchSummary() {
+      const fromId = document.getElementById('switchFromSelect').value;
+      const toId = document.getElementById('switchToSelect').value;
+      const amount = Number(document.getElementById('switchAmountInput').value) || 0;
+
+      const fromFund = fundsData.fundsData ? null : fundsData.find(f => f.id === fromId);
+      const toFund = fundsData.find(f => f.id === toId);
+      const sym = fromFund.symbol || '₱';
+
+      document.getElementById('switchAmountLabel').textContent = `Reallocation Amount (${fromFund.currency}):`;
+
+      document.getElementById('switchAdvisorNote').innerHTML = `
+        💡 <span class="font-bold">Advisor Note:</span> Rebalancing <span class="font-bold">${sym}${amount.toLocaleString()}</span> from 
+        <span class="font-semibold text-red-700">${fromFund.name}</span> to 
+        <span class="font-semibold text-emerald-700">${toFund.name}</span> aligns with the current Fund Fact Sheet outlook.
+      `;
+    }
+
+    function copySwitchProposal() {
+      const fromId = document.getElementById('switchFromSelect').value;
+      const toId = document.getElementById('switchToSelect').value;
+      const amount = Number(document.getElementById('switchAmountInput').value) || 0;
+
+      const fromFund = fundsData.find(f => f.id === fromId);
+      const toFund = fundsData.find(f => f.id === toId);
+      const sym = fromFund.symbol || '₱';
+
+      const text = `Hi! Based on Pru Life UK's latest Fund Fact Sheet and today's DAILY MARKET BRIEF, I recommend rebalancing ${sym}${amount.toLocaleString()} from ${fromFund.name} into ${toFund.name} to capture stronger long-term growth potential. Let me know if you'd like me to prepare the fund switch request for your policy!`;
+      copyTextSafe(text, 'Fund switch proposal copied to clipboard!');
+    }
+
+    // ==================== FUND FACT SHEET UPDATE FUNCTIONS ====================
+    function saveFundsToStorage() {
+      try {
+        localStorage.setItem('prulink_funds_data', JSON.stringify(fundsData));
+      } catch (e) {
+        console.error('Failed to save funds data:', e);
+      }
+    }
+
+    function openFundUpdateModal() {
+      const modalSelect = document.getElementById('modalFundSelector');
+      modalSelect.innerHTML = fundsData.map(f => `<option value="${f.id}">${f.name} [${f.currency}]</option>`).join('');
+      const currentMainFund = document.getElementById('fundSelector').value;
+      if (currentMainFund) modalSelect.value = currentMainFund;
+      loadFundIntoUpdateModal();
+      document.getElementById('fundUpdateModal').classList.remove('hidden');
+    }
+
+    function closeFundUpdateModal() {
+      document.getElementById('fundUpdateModal').classList.add('hidden');
+    }
+
+    function loadFundIntoUpdateModal() {
+      const fundId = document.getElementById('modalFundSelector').value;
+      const fund = fundsData.find(f => f.id === fundId);
+      if (!fund) return;
+
+      document.getElementById('editFundNavpu').value = fund.navpu ?? '';
+      document.getElementById('editFundNavpuDate').value = fund.navpuDate || 'Latest NAVPU';
+      document.getElementById('editFund1Mo').value = fund.cagr1Mo ?? '';
+      document.getElementById('editFundYtd').value = fund.cagrYtd ?? '';
+      document.getElementById('editFund1Yr').value = fund.cagr1Yr ?? '';
+      document.getElementById('editFund5Yr').value = fund.cagr5Yr ?? '';
+      document.getElementById('editFundIncep').value = fund.cagrInception ?? '';
+      document.getElementById('editFundBench').value = fund.defaultProjectionRate ?? '';
+    }
+
+    function parseNullableNumber(val) {
+      if (val === '' || val === null || val === undefined || String(val).toLowerCase() === 'n.a.') return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    }
+
+    function saveSingleFundUpdate() {
+      const fundId = document.getElementById('modalFundSelector').value;
+      const fund = fundsData.find(f => f.id === fundId);
+      if (!fund) return;
+
+      const navpuVal = Number(document.getElementById('editFundNavpu').value);
+      if (!isNaN(navpuVal) && navpuVal > 0) fund.navpu = navpuVal;
+
+      const navpuDateVal = document.getElementById('editFundNavpuDate').value.trim();
+      if (navpuDateVal) fund.navpuDate = navpuDateVal;
+
+      fund.cagr1Mo = parseNullableNumber(document.getElementById('editFund1Mo').value);
+      fund.cagrYtd = parseNullableNumber(document.getElementById('editFundYtd').value);
+      fund.cagr1Yr = parseNullableNumber(document.getElementById('editFund1Yr').value);
+      fund.cagr5Yr = parseNullableNumber(document.getElementById('editFund5Yr').value);
+      fund.cagrInception = parseNullableNumber(document.getElementById('editFundIncep').value);
+
+      const benchVal = Number(document.getElementById('editFundBench').value);
+      if (!isNaN(benchVal)) fund.defaultProjectionRate = benchVal;
+
+      saveFundsToStorage();
+
+      // Sync main selector and refresh UI
+      document.getElementById('fundSelector').value = fund.id;
+      document.getElementById('customRateInput').value = fund.defaultProjectionRate;
+      lastSelectedFundId = fund.id;
+
+      updateProjection();
+      initRecommendations();
+      initSwitchDropdowns();
+      showToast(`Updated ${fund.name} metrics successfully!`, 'success');
+    }
+
+    function downloadFundTemplateCsv() {
+      const headers = ['Fund Name', 'Currency', 'NAVPU', 'As Of Date', '1-Month (%)', 'YTD (%)', '1-Year (%)', '5-Year Ann. (%)', 'Since Inception (%)', 'Benchmark Projection Rate (%)'];
+      const rows = fundsData.map(f => [
+        `"${f.name}"`,
+        f.currency,
+        f.navpu,
+        `"${f.navpuDate}"`,
+        f.cagr1Mo ?? 'n.a.',
+        f.cagrYtd ?? 'n.a.',
+        f.cagr1Yr ?? 'n.a.',
+        f.cagr5Yr ?? 'n.a.',
+        f.cagrInception ?? 'n.a.',
+        f.defaultProjectionRate
+      ].join(','));
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `PRULink_Funds_Template_${getTodayIsoDate()}.csv`;
+      link.click();
+      showToast('CSV template downloaded!', 'info');
+    }
+
+    function handleBulkFundUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+          if (!Array.isArray(rows) || rows.length === 0) {
+            showToast('Walang nakitang valid rows sa uploaded file.', 'error');
+            return;
+          }
+
+          let updatedCount = 0;
+          rows.forEach(row => {
+            const nameVal = String(row['Fund Name'] || row['name'] || row['id'] || '').trim();
+            if (!nameVal) return;
+
+            const targetFund = fundsData.find(f => f.name.toLowerCase() === nameVal.toLowerCase() || f.id.toLowerCase() === nameVal.toLowerCase());
+            if (targetFund) {
+              const navpu = Number(row['NAVPU'] ?? row['navpu']);
+              if (!isNaN(navpu) && navpu > 0) targetFund.navpu = navpu;
+
+              if (row['As Of Date'] || row['navpuDate']) {
+                targetFund.navpuDate = String(row['As Of Date'] || row['navpuDate']).trim();
+              }
+              if (row['1-Month (%)'] !== undefined) targetFund.cagr1Mo = parseNullableNumber(row['1-Month (%)']);
+              if (row['YTD (%)'] !== undefined) targetFund.cagrYtd = parseNullableNumber(row['YTD (%)']);
+              if (row['1-Year (%)'] !== undefined) targetFund.cagr1Yr = parseNullableNumber(row['1-Year (%)']);
+              if (row['5-Year Ann. (%)'] !== undefined) targetFund.cagr5Yr = parseNullableNumber(row['5-Year Ann. (%)']);
+              if (row['Since Inception (%)'] !== undefined) targetFund.cagrInception = parseNullableNumber(row['Since Inception (%)']);
+
+              const bench = Number(row['Benchmark Projection Rate (%)'] ?? row['defaultProjectionRate']);
+              if (!isNaN(bench)) targetFund.defaultProjectionRate = bench;
+
+              updatedCount++;
+            }
+          });
+
+          if (updatedCount > 0) {
+            saveFundsToStorage();
+            const currId = document.getElementById('fundSelector').value;
+            const currFund = fundsData.find(f => f.id === currId) || fundsData[0];
+            document.getElementById('customRateInput').value = currFund.defaultProjectionRate;
+            updateProjection();
+            initRecommendations();
+            initSwitchDropdowns();
+            loadFundIntoUpdateModal();
+            showToast(`Matagumpay na na-update ang ${updatedCount} PRULink funds!`, 'success');
+          } else {
+            showToast('Walang nag-match na Fund Name mula sa file.', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Error reading fund file. Pakitiyak na tama ang columns.', 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function resetAllFundsToDefault() {
+      fundsData = JSON.parse(JSON.stringify(DEFAULT_FUNDS_DATA));
+      localStorage.removeItem('prulink_funds_data');
+      const currId = document.getElementById('fundSelector').value;
+      const currFund = fundsData.find(f => f.id === currId) || fundsData[0];
+      document.getElementById('customRateInput').value = currFund.defaultProjectionRate;
+      updateProjection();
+      initRecommendations();
+      initSwitchDropdowns();
+      loadFundIntoUpdateModal();
+      showToast('Naibalik na sa default baseline data ang lahat ng funds.', 'info');
+    }
+
+  </script>
+</body>
+</html>
